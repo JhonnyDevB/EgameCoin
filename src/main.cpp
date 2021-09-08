@@ -41,7 +41,7 @@ set<pair<COutPoint, unsigned int> > setStakeSeen;
 
 unsigned int nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
-int nCoinbaseMaturity = 100;
+int nCoinbaseMaturity = 25;
 int nStakeMinConfirmations = nCoinbaseMaturity;
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
@@ -959,25 +959,29 @@ void static PruneOrphanBlocks()
 // miner's coin base reward
 int64_t GetProofOfWorkReward(int64_t nHeight, int64_t nFees)
 {
-    int64_t nSubsidy = 0;
+    int64_t nSubsidy = 1000;
 
     if (nHeight < 2000)
-        nSubsidy = 500000 * COIN;
+        nSubsidy = 500 * COIN;
 
     LogPrint("creation", "GetProofOfWorkReward() : create=%s nSubsidy=%d\n", FormatMoney(nSubsidy), nSubsidy);
 
     return nSubsidy + nFees;
 }
 
-// miner's coin stake reward
-int64_t GetProofOfStakeReward(const CBlockIndex* pindexPrev, uint64_t nCoinAge, int64_t nFees)
+// miner's coin stake reward 
+int64_t GetProofOfStakeReward(int64_t nCoinAge, int64_t nFees)
 {
-    int64_t nSubsidy = nCoinAge * (COIN_YEAR_REWARD / 365);
+    static int64_t nRewardCoinYear = 90 * CENT;  // creation amount per coin-year [250% Starting | ~5000% Peak]
+    int64_t nSubsidy = nCoinAge * 33 / (365 * 33 + 8) * nRewardCoinYear;
+
+    if (fDebug && GetBoolArg("-printcreation"))
+        printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRId64"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
 
     return nSubsidy + nFees;
 }
 
-static const int64_t nTargetTimespan = 16 * 60;  // 16 mins
+static const int64_t nTargetTimespan = 1 * 60;  // 1 mins
 
 // ppcoin: find last block index up to pindex
 const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfStake)
